@@ -106,14 +106,15 @@ fn main() -> Result<(), String> {
     let video_subsystem = sdl_context.video()?;
     let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
     // Настраиваем размер окна (пока фиксированный, под сетку 80x24)
-    let char_size = 16; // Размер одного символа (глифа)
+    let char_size_w = 8; // Размер одного символа (глифа)
+    let char_size_h = 16;
     let cols = 80;
-    let rows = 60;
+    let rows = 24;
     //println!("{} {}", cols * char_size, rows * char_size);
 
     // 1. Запускаем наш бинарник pty_proxy
     let mut child = Command::new("/home/klkl/testPT/target/release/testPT")
-        .args(&["80", "60", "/bin/sh"]) // начальный размер и шелл
+        .args(&["24", "80", "/bin/sh"]) // начальный размер и шелл
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
@@ -137,7 +138,11 @@ fn main() -> Result<(), String> {
     });
 
     let window = video_subsystem
-        .window("Rust Matrix Terminal", cols * char_size, rows * char_size)
+        .window(
+            "Rust Matrix Terminal",
+            cols * char_size_w,
+            rows * char_size_h,
+        )
         .position_centered()
         .resizable()
         .build()
@@ -205,8 +210,8 @@ fn main() -> Result<(), String> {
                     win_event: WindowEvent::SizeChanged(w, h),
                     ..
                 } => {
-                    let new_cols = (w as u32 / char_size) as usize;
-                    let new_rows = (h as u32 / char_size) as usize;
+                    let new_cols = (w as u32 / char_size_w) as usize;
+                    let new_rows = (h as u32 / char_size_h) as usize;
 
                     if new_cols > 0 && new_rows > 0 {
                         grid.resize(new_cols, new_rows);
@@ -303,25 +308,3 @@ fn main() -> Result<(), String> {
 
     Ok(())
 }
-
-// canvas.set_draw_color(Color::RGB(30, 30, 30)); // Темно-зеленый фон в стиле матрицы
-// canvas.clear();
-// let display_rect = Rect::new(0, 0, 512, 512);
-// canvas.copy(&atlas_texture.texture, None, Some(display_rect))?;
-// canvas.set_draw_color(Color::RGB(0, 255, 0)); // Ярко-зеленый
-// let test_text = "Hello, Матрица! 123";
-// atlas_texture.texture.set_color_mod(0, 255, 0);
-
-// let mut x_offset = 10;
-// for c in test_text.chars() {
-//     if let Some(&(px, py)) = atlas_texture.uv_map.get(&c) {
-//         let src_rect =
-//             Rect::new(px, py, atlas_texture.char_width, atlas_texture.char_height);
-
-//         // Масштабируем до 32x32 для теста
-//         let dst_rect = Rect::new(x_offset, 450, 32, 32);
-
-//         canvas.copy(&atlas_texture.texture, Some(src_rect), Some(dst_rect))?;
-//         x_offset += 25; // Шаг между буквами
-//     }
-// }
