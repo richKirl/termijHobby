@@ -193,8 +193,11 @@ fn main() -> Result<(), String> {
         // 1. Обработка событий (Close, Resize, Keyboard)
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape),..} => { break 'running; }
-                Event::Window { win_event: WindowEvent::SizeChanged(w, h),..} => {
+                Event::Quit     { .. } |
+                Event::KeyDown  { keycode: Some(Keycode::Escape),..}
+                => { break 'running; }
+                Event::Window   { win_event: WindowEvent::SizeChanged(w, h),..}
+                => {
                     let new_cols = (w as u32 / char_size_w) as usize;
                     let new_rows = (h as u32 / char_size_h) as usize;
 
@@ -208,15 +211,18 @@ fn main() -> Result<(), String> {
                         let _ = child_stdin.flush();
                     }
                 }
-                Event::TextInput { text, .. } => {
+                Event::TextInput { text, .. }
+                => {
                     let _ = child_stdin.write_all(text.as_bytes());
                     let _ = child_stdin.flush();
                 }
-                Event::KeyDown { keycode: Some(Keycode::Return), .. }=> {
+                Event::KeyDown  { keycode: Some(Keycode::Return), .. }
+                => {
                     let _ = child_stdin.write_all(b"\n");
                     let _ = child_stdin.flush();
                 }
-                Event::KeyDown { keycode: Some(Keycode::Backspace), .. } => {
+                Event::KeyDown  { keycode: Some(Keycode::Backspace), .. }
+                => {
                     let _ = child_stdin.write_all(b"\x08");
                     let _ = child_stdin.flush();
                 }
