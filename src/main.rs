@@ -25,7 +25,7 @@ struct TerminalGrid {
     cursor_x: usize,
     cursor_y: usize,
 }
-
+#[rustfmt::skip]
 impl TerminalGrid {
     fn new(w: usize, h: usize) -> Self {
         // Создаем пустую сетку с пробелами
@@ -79,12 +79,8 @@ impl TerminalGrid {
         self.height = new_h;
 
         // Корректируем курсор, чтобы он не оказался за пределами новой сетки
-        if self.cursor_x >= self.width {
-            self.cursor_x = self.width - 1;
-        }
-        if self.cursor_y >= self.height {
-            self.cursor_y = self.height - 1;
-        }
+        if self.cursor_x >= self.width { self.cursor_x = self.width - 1; }
+        if self.cursor_y >= self.height {self.cursor_y = self.height - 1;}
     }
     // Метод для записи символа и обработки переноса строки
     fn put_char(&mut self, ch: char) {
@@ -100,11 +96,11 @@ impl TerminalGrid {
         // Тут еще нужна логика скроллинга, если cursor_y > height
     }
 }
-
+#[rustfmt::skip]
 fn main() -> Result<(), String> {
-    let sdl_context = sdl2::init()?;
-    let video_subsystem = sdl_context.video()?;
-    let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string())?;
+    let sdl_context = sdl2::init().expect("Failed SDL2 init");
+    let video_subsystem = sdl_context.video().expect("Failed SDL2 Video-context Subsystem init");
+    let ttf_context = sdl2::ttf::init().map_err(|e| e.to_string()).expect("Failed init sdl2ttf context");
     // Настраиваем размер окна (пока фиксированный, под сетку 80x24)
     let char_size_w = 8; // Размер одного символа (глифа)
     let char_size_h = 16;
@@ -130,9 +126,7 @@ fn main() -> Result<(), String> {
     std::thread::spawn(move || {
         let mut buffer = [0u8; 4096];
         while let Ok(n) = child_stdout.read(&mut buffer) {
-            if n == 0 {
-                break;
-            }
+            if n == 0 { break; }
             let _ = tx.send(buffer[..n].to_vec());
         }
     });
@@ -146,21 +140,21 @@ fn main() -> Result<(), String> {
         .position_centered()
         .resizable()
         .build()
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| e.to_string()).expect("Failed SDL2 window");
     let display_scale = 1.0; // Например, увеличим шрифт в 2 раза
     let atlas_cell_size = 16; // Размер ячейки в файле атласа
     let mut grid = TerminalGrid::new(cols as usize, rows as usize);
     sdl2::hint::set("SDL_RENDER_SCALE_QUALITY", "1");
-    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string())?;
+    let mut canvas = window.into_canvas().build().map_err(|e| e.to_string()).expect("failed SDL2 canvas init");
     let texture_creator = canvas.texture_creator();
-    let font = ttf_context.load_font("/usr/local/share/fonts/ubuntu-font/UbuntuMono-R.ttf", 15)?;
-    let mut atlas_texture = FontAtlas::create(&font, &texture_creator)?;
+    let font = ttf_context.load_font("/usr/local/share/fonts/ubuntu-font/UbuntuMono-R.ttf", 15).expect("Failed to open font file");
+    let mut atlas_texture = FontAtlas::create(&font, &texture_creator).expect("Failed to create atlas-font texture");
     // --- ПЕРЕД ЦИКЛОМ 'running ---
     canvas.set_draw_color(Color::RGB(0, 0, 0));
     canvas.clear();
     canvas.present();
 
-    let mut event_pump = sdl_context.event_pump()?;
+    let mut event_pump = sdl_context.event_pump().expect("failed sdl2 event pump");
 
     'running: loop {
         while let Ok(data) = rx.try_recv() {
@@ -199,17 +193,8 @@ fn main() -> Result<(), String> {
         // 1. Обработка событий (Close, Resize, Keyboard)
         for event in event_pump.poll_iter() {
             match event {
-                Event::Quit { .. }
-                | Event::KeyDown {
-                    keycode: Some(Keycode::Escape),
-                    ..
-                } => {
-                    break 'running;
-                }
-                Event::Window {
-                    win_event: WindowEvent::SizeChanged(w, h),
-                    ..
-                } => {
+                Event::Quit { .. } | Event::KeyDown { keycode: Some(Keycode::Escape),..} => { break 'running; }
+                Event::Window { win_event: WindowEvent::SizeChanged(w, h),..} => {
                     let new_cols = (w as u32 / char_size_w) as usize;
                     let new_rows = (h as u32 / char_size_h) as usize;
 
@@ -227,28 +212,14 @@ fn main() -> Result<(), String> {
                     let _ = child_stdin.write_all(text.as_bytes());
                     let _ = child_stdin.flush();
                 }
-                Event::KeyDown {
-                    keycode: Some(Keycode::Return),
-                    ..
-                } => {
+                Event::KeyDown { keycode: Some(Keycode::Return), .. }=> {
                     let _ = child_stdin.write_all(b"\n");
                     let _ = child_stdin.flush();
                 }
-                Event::KeyDown {
-                    keycode: Some(Keycode::Backspace),
-                    ..
-                } => {
+                Event::KeyDown { keycode: Some(Keycode::Backspace), .. } => {
                     let _ = child_stdin.write_all(b"\x08");
                     let _ = child_stdin.flush();
                 }
-                // Event::KeyDown {
-                //     keycode: Some(key), ..
-                // } => {
-                //     // Сюда мы потом прикрутим отправку нажатий в PTY канал
-                //     //println!("Key pressed: {:?}", key);
-                //     let _ = child_stdin.write_all(b"\n");
-                //     let _ = child_stdin.flush();
-                // }
                 _ => {}
             }
         }
@@ -286,8 +257,7 @@ fn main() -> Result<(), String> {
                 // 2. Рисуем символ
                 if t_char.c != ' ' {
                     if let Some(&(px, py)) = atlas_texture.uv_map.get(&t_char.c) {
-                        let src_rect =
-                            Rect::new(px, py, atlas_texture.char_width, atlas_texture.char_height);
+                        let src_rect = Rect::new(px, py, atlas_texture.char_width, atlas_texture.char_height);
 
                         // Устанавливаем цвет текста из TerminalChar
                         atlas_texture
